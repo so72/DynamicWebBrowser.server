@@ -1,0 +1,14 @@
+# NetBeans Stuff
+nbproject/private/
+dist/
+build/
+nbbuild/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# Compiled Stuff
+*.class
+*.jar
+*.war
+*.ear
