@@ -91,7 +91,7 @@ public class ClassServer implements Runnable {
                 readFromNet = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
                 inputLine = readFromNet.readLine();
-
+                
                 tokenizer = new StringTokenizer(inputLine);
                 httpMethod = tokenizer.nextToken();
 
@@ -102,6 +102,13 @@ public class ClassServer implements Runnable {
                     
                     if (tokenizer.hasMoreTokens()) {
                         version = tokenizer.nextToken();
+                    }
+                    
+                    // Skip the rest
+                    while ((inputLine = readFromNet.readLine()) != null) {
+                        if (inputLine.trim().equals("")) {
+                            break;
+                        }
                     }
                     
                     String classFile = properties.getProperty(protocol);
@@ -152,7 +159,7 @@ public class ClassServer implements Runnable {
                     }
 
                     try {
-                        System.err.println("FileString: " + "\"" + fileString + "\"");
+                        System.out.println("FileString: " + "\"" + fileString + "\"");
                         fileToServe = new File(documentRoot, fileString);
                         FileInputStream fis = new FileInputStream(fileToServe);
                         byte[] theData = new byte[(int) fileToServe.length()];
