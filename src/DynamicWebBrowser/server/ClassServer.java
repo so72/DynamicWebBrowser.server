@@ -17,11 +17,9 @@ import java.util.StringTokenizer;
  * @author Steffen, Mark, Shane
  */
 public class ClassServer implements Runnable {
-    
+
     private final String PROP_FILE = "ClassServer.properties";
-    
     private ServerSocket serverSocket;
-    
     private Properties properties;
     private String documentRoot;
     private int port;
@@ -29,26 +27,26 @@ public class ClassServer implements Runnable {
     public static void main(String[] args) {
         (new Thread(new ClassServer())).start();
     }
-    
+
     public ClassServer() {
         properties = new Properties();
-        
+
         try {
             //load a properties file
             properties.load(this.getClass().getResourceAsStream(PROP_FILE));
         } catch (IOException ex) {
             System.err.println("Failed to open properties file.");
         }
-        
+
         documentRoot = properties.getProperty("root");
         port = Integer.parseInt(properties.getProperty("port"));
     }
-    
+
     @Override
     public void run() {
         try {
             serverSocket = new ServerSocket(port);
-            
+
             while (true) {
                 System.out.println("Waiting for connection on port: " + port);
                 Socket socket = serverSocket.accept();
@@ -61,9 +59,9 @@ public class ClassServer implements Runnable {
         }
     }
 
-
     /**
-     * This thread processes a client (web browser) request. In the meantime the web server can accept other clients.
+     * This thread processes a client (web browser) request. In the meantime the
+     * web server can accept other clients.
      */
     class ConnectionHandler implements Runnable {
 
@@ -78,9 +76,6 @@ public class ClassServer implements Runnable {
         String contentType;
         File fileToServe;
 
-        /**
-         * The Constructor
-         */
         ConnectionHandler(Socket socket) {
             this.socket = socket;
         }
@@ -101,10 +96,48 @@ public class ClassServer implements Runnable {
                 httpMethod = tokenizer.nextToken();
 
                 if (httpMethod.equals("CLASS")) {
+                    String protocol = tokenizer.nextToken();
                     
+                    System.out.println("Client asked for: " + protocol);
+                    
+                    if (tokenizer.hasMoreTokens()) {
+                        version = tokenizer.nextToken();
+                    }
+                    
+                    String classFile = properties.getProperty(protocol);
+                    if (classFile != null) {
+                        // Protocol is known
+                        if (version.startsWith("HTTP/")) {
+                            // Send a MIME header
+                            writeToNet.print("HTTP/1.0 200 OK\r\n");
+                            writeToNet.print("Date: " + new Date() + "\r\n");
+                            writeToNet.print("Server: MyWebServer Version Feb 2000\r\n");
+                            writeToNet.print("Content-length: " + classFile.length() + "\r\n");
+                            writeToNet.print("Content-type: text/plain\r\n\r\n");
+                        }
+                        
+                        writeToNet.println(classFile);
+                        writeToNet.close();
+                        System.out.println("Sent protocol class name.");
+                    } else {
+                        // Server doesn't know this protocol
+                        if (version.startsWith("HTTP/")) {
+                            // send a MIME header
+                            writeToNet.print("HTTP/1.0 501 Not Implemented\r\n");
+                            writeToNet.print("Date: " + new Date() + "\r\n");
+                            writeToNet.print("Server: MyWebServer Version Feb 2000\r\n");
+                            writeToNet.print("Content-type: text/html" + "\r\n\r\n");
+                        }
+
+                        writeToNet.println("<HTML><HEAD><TITLE>Not Implemented</TITLE></HEAD>");
+                        writeToNet.println("<BODY><H1>HTTP Error 501: Not Implemented</H1></BODY></HTML>");
+                        writeToNet.close();
+                        
+                        System.err.println("Class was not known, sent 501");
+                    }
                 } else if (httpMethod.equals("GET")) {
                     fileString = tokenizer.nextToken();
-                    
+
                     contentType = guessContentTypeFromName(fileString);
 
                     if (tokenizer.hasMoreTokens()) {
@@ -120,7 +153,7 @@ public class ClassServer implements Runnable {
 
                     try {
                         System.err.println("FileString: " + "\"" + fileString + "\"");
-                        fileToServe = new File(documentRoot, fileString.substring(1, fileString.length()));
+                        fileToServe = new File(documentRoot, fileString);
                         FileInputStream fis = new FileInputStream(fileToServe);
                         byte[] theData = new byte[(int) fileToServe.length()];
 
@@ -139,7 +172,7 @@ public class ClassServer implements Runnable {
                         // Send the file
                         writeToNet.write(theData);
                         writeToNet.close();
-                        System.err.println("File: " + fileToServe + " sent\n");
+                        System.out.println("File: " + fileToServe + " sent\n");
 
                     } catch (IOException e) {
                         // Cannot find the file
