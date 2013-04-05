@@ -123,7 +123,7 @@ public class ClassServer implements Runnable {
                             writeToNet.print("Content-type: text/plain\r\n\r\n");
                         }
                         
-                        writeToNet.println(classFile);
+                        writeToNet.print(classFile);
                         writeToNet.close();
                         System.out.println("Sent protocol class name.");
                     } else {
@@ -163,7 +163,7 @@ public class ClassServer implements Runnable {
                         fileToServe = new File(documentRoot, fileString);
                         FileInputStream fis = new FileInputStream(fileToServe);
                         byte[] theData = new byte[(int) fileToServe.length()];
-
+                        
                         fis.read(theData);
                         fis.close();
 
