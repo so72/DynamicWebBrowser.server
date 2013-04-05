@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package DynamicWebBrowser.protocols;
 
 import java.net.URI;
@@ -9,7 +5,7 @@ import java.util.Date;
 
 /**
  *
- * @author steffen
+ * @author Steffen, Mark, Shane
  */
 public class Time implements Protocol {
 
