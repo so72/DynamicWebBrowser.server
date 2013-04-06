@@ -48,10 +48,11 @@ public class ClassServer implements Runnable {
             serverSocket = new ServerSocket(port);
 
             while (true) {
-                System.out.println("Waiting for connection on port: " + port);
+                System.out.println("\nWaiting for connection on port: " + port);
                 Socket socket = serverSocket.accept();
-                System.out.println("Connection established.");
-                (new Thread(new ConnectionHandler(socket))).start();
+                Thread thread = new Thread(new ConnectionHandler(socket));
+                System.out.println("\nCreating Thread(" + thread.getId() + ") for incoming connection: ");
+                thread.start();
             }
         } catch (IOException e) {
             System.err.println("IOException: " + e.getMessage());
@@ -75,6 +76,8 @@ public class ClassServer implements Runnable {
         String version;
         String contentType;
         File fileToServe;
+        
+        private long threadID;
 
         ConnectionHandler(Socket socket) {
             this.socket = socket;
@@ -86,6 +89,8 @@ public class ClassServer implements Runnable {
          */
         @Override
         public void run() {
+            threadID = Thread.currentThread().getId();
+            log("Connection established.");
             try {
                 writeToNet = new PrintStream(socket.getOutputStream());
                 readFromNet = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -98,7 +103,7 @@ public class ClassServer implements Runnable {
                 if (httpMethod.equals("CLASS")) {
                     String protocol = tokenizer.nextToken();
                     
-                    System.out.println("Client asked for: " + protocol);
+                    log("Client asked for: " + protocol);
                     
                     if (tokenizer.hasMoreTokens()) {
                         version = tokenizer.nextToken();
@@ -125,7 +130,7 @@ public class ClassServer implements Runnable {
                         
                         writeToNet.print(classFile);
                         writeToNet.close();
-                        System.out.println("Sent protocol class name.");
+                        log("Sent protocol class name.");
                     } else {
                         // Server doesn't know this protocol
                         if (version.startsWith("HTTP/")) {
@@ -159,7 +164,7 @@ public class ClassServer implements Runnable {
                     }
 
                     try {
-                        System.out.println("FileString: " + "\"" + fileString + "\"");
+                        log("FileString: " + "\"" + fileString + "\"");
                         fileToServe = new File(documentRoot, fileString);
                         FileInputStream fis = new FileInputStream(fileToServe);
                         byte[] theData = new byte[(int) fileToServe.length()];
@@ -179,7 +184,7 @@ public class ClassServer implements Runnable {
                         // Send the file
                         writeToNet.write(theData);
                         writeToNet.close();
-                        System.out.println("File: " + fileToServe + " sent\n");
+                        log("File: " + fileToServe + " sent\n");
 
                     } catch (IOException e) {
                         // Cannot find the file
@@ -193,7 +198,7 @@ public class ClassServer implements Runnable {
                         writeToNet.println("<HTML><HEAD><TITLE>File Not Found</TITLE></HEAD>");
                         writeToNet.println("<BODY><H1>HTTP Error 404: File Not Found</H1></BODY></HTML>");
                         writeToNet.close();
-                        System.err.println("File: " + fileToServe + " not found\n");
+                        log("File: " + fileToServe + " not found\n");
                     }
                 } else {
                     // Method doesn't equal "GET"
@@ -209,7 +214,7 @@ public class ClassServer implements Runnable {
                     writeToNet.println("<BODY><H1>HTTP Error 501: Not Implemented</H1></BODY></HTML>");
                     writeToNet.close();
 
-                    System.err.println("Method: " + httpMethod + " is not supported\n");
+                    log("Method: " + httpMethod + " is not supported\n");
 
                 }
             } catch (IOException e) {
@@ -219,6 +224,10 @@ public class ClassServer implements Runnable {
                 socket.close();
             } catch (IOException e) {
             }
+        }
+        
+        private void log(String message) {
+            System.out.print("\n" + threadID + ": " + message + "\n");
         }
 
         /**
