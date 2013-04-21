@@ -14,7 +14,7 @@ public class Arith implements Protocol {
 	public String execute(URI uri) {
             String response = "";
             String answer = uri.getSchemeSpecificPart();
-            Pattern pat = Pattern.compile("^(\\d+)([+]|[-]|[*]|[/]){1}(\\d+)$");
+            Pattern pat = Pattern.compile("^(\\d+[.]*\\d*)([+]|[-]|[*]|[/]){1}(\\d+[.]*\\d*)$");
             Matcher matcher = pat.matcher(answer);
             
             response += "<HTML><HEAD><TITLE>Arithmetic</TITLE></HEAD>\n";
