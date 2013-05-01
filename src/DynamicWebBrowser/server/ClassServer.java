@@ -236,6 +236,9 @@ public class ClassServer implements Runnable {
                     String fileContents = "";
                     String line;
                     while ((line = readFromNet.readLine()) != null) {
+                        if (inputLine.trim().equals("END")) {
+                            break;
+                        }
                         fileContents += line + "\n";
                     }
                     try{
