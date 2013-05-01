@@ -213,7 +213,7 @@ public class ClassServer implements Runnable {
                     boolean succeeded = false;
                     String sourceFileName = tokenizer.nextToken();
 
-                    log("User is attempting to upload a file: " + sourceFileName);
+                    log("User is attempting to upload file: " + sourceFileName);
 
                     if (tokenizer.hasMoreTokens()) {
                         version = tokenizer.nextToken();
