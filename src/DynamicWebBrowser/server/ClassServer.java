@@ -3,6 +3,7 @@ package DynamicWebBrowser.server;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -11,6 +12,14 @@ import java.net.Socket;
 import java.util.Date;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.Arrays;
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaCompiler.CompilationTask;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.ToolProvider;
 
 /**
  *
@@ -200,6 +209,83 @@ public class ClassServer implements Runnable {
                         writeToNet.close();
                         log("File: " + fileToServe + " not found\n");
                     }
+                } else if (httpMethod.equals("UPLOAD")) {
+                    boolean succeeded = false;
+                    String sourceFileName = tokenizer.nextToken();
+
+                    log("User is attempting to upload a file: " + sourceFileName);
+
+                    if (tokenizer.hasMoreTokens()) {
+                        version = tokenizer.nextToken();
+                    }
+
+                    String headerLine = readFromNet.readLine();
+                    tokenizer = new StringTokenizer(headerLine);
+
+                    if (!tokenizer.nextToken().equals("protocol:")) {
+                        // TODO: deal with invalid UPLOAD request
+                    }
+
+                    String protocol = tokenizer.nextToken();
+
+                    log("protocol is: " + protocol);
+
+                    while(!readFromNet.readLine().equals(""));
+
+                    // The remainder should be the file contents.
+                    String fileContents = "";
+                    String line;
+                    while ((line = readFromNet.readLine()) != null) {
+                        fileContents += line + "\n";
+                    }
+                    try{
+                        File sourceFile = new File(documentRoot, sourceFileName);
+                        FileOutputStream fos = new FileOutputStream(sourceFile);
+
+                        fos.write(fileContents.getBytes());
+                    } catch (IOException e) {
+                        log("Failed writing to file");
+                        succeeded = false;
+                    }
+
+                    // Compile the new source
+                    JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+
+                    if (compiler == null) {
+                        log("Compiler could not be found");
+                        succeeded = false;
+                    } else {
+                        DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+                        StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+                        Iterable<? extends JavaFileObject> fileObject = fileManager.getJavaFileObjectsFromStrings(Arrays.asList(documentRoot + sourceFileName));
+                        Iterable<String> options = Arrays.asList(new String[]{"-Xlint:deprecation"});
+
+                        CompilationTask task = compiler.getTask(null, fileManager, diagnostics, options, null, fileObject);
+
+                        log("Compiling...");
+                        if (!task.call()) {
+                            log("Compilation failed!");
+                            succeeded = false;
+                        } else {
+                            log("Sucessfully compiled protocol");
+                            succeeded = true;
+                        }
+                    }
+
+                    if (succeeded) {
+                        tokenizer = new StringTokenizer(sourceFileName, ".");
+                        String className = tokenizer.nextToken() + ".class";
+
+                        // TODO: may want to synchronize this call? Not sure.
+                        properties.setProperty(protocol, className);
+                        
+                        writeToNet.print("HTTP/1.0 200 OK\r\n\r\n");
+                        writeToNet.close();
+                    } else {
+                        writeToNet.print("HTTP/1.0 500 Internal Service Error\r\n\r\n");
+                        writeToNet.close();
+                    }
+
                 } else {
                     // Method doesn't equal "GET"
                     if (version.startsWith("HTTP/")) {
