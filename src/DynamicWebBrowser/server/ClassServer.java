@@ -235,7 +235,7 @@ public class ClassServer implements Runnable {
                     // The remainder should be the file contents.
                     String fileContents = "";
                     String line;
-                    while ((line = readFromNet.readLine()) != null) {
+                    while (!(line = readFromNet.readLine()).equals("end")) {
                         fileContents += line + "\n";
                     }
                     try{
